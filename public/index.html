@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>소년논술 미니북 PDF 생성기</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+       background: #f0f0f0; color: #222; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+header { background: #1a1a2e; color: white; padding: 14px 28px;
+         display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+header h1 { font-size: 1.05rem; font-weight: 600; }
+header span { font-size: 0.8rem; opacity: 0.5; }
+.workspace { display: flex; flex: 1; overflow: hidden; }
+.panel-left { width: 560px; min-width: 480px; flex-shrink: 0;
+              background: white; overflow-y: auto; border-right: 1px solid #e0e0e0;
+              display: flex; flex-direction: column; }
+.panel-left-inner { padding: 24px 24px 16px; }
+.section { margin-bottom: 28px; padding-bottom: 24px; border-bottom: 1px solid #f0f0f0; }
+.section:last-child { border-bottom: none; }
+.section-heading { font-size: 1.05rem; font-weight: 700; color: #1a1a2e;
+                   margin-bottom: 16px; padding-bottom: 10px;
+                   border-bottom: 2.5px solid #1a1a2e;
+                   display: flex; align-items: center; gap: 10px; }
+.section-heading .num { background: #1a1a2e; color: white; border-radius: 50%;
+                        width: 24px; height: 24px; display: flex; align-items: center;
+                        justify-content: center; font-size: 0.8rem; font-weight: 700; flex-shrink: 0; }
+.btn-confirm { width: 100%; margin-top: 14px; padding: 10px;
+               background: #f0f3ff; color: #1a1a2e;
+               border: 1.5px solid #c5cef7; border-radius: 7px;
+               font-size: 0.88rem; cursor: pointer; font-weight: 600;
+               transition: all 0.15s;
+               display: flex; align-items: center; justify-content: center; gap: 6px; }
+.btn-confirm:hover { background: #dde3ff; border-color: #99a8f5; }
+.form-group { margin-bottom: 12px; }
+label { display: flex; align-items: center; gap: 6px;
+        font-size: 0.82rem; font-weight: 600; color: #444; margin-bottom: 5px; }
+label .req { color: #e53935; font-size: 0.72rem; }
+label .opt { color: #bbb; font-size: 0.72rem; font-weight: 400; }
+label .lim { color: #999; font-size: 0.72rem; font-weight: 400; }
+input[type=text], textarea {
+  width: 100%; padding: 9px 11px;
+  border: 1.5px solid #e8e8e8; border-radius: 7px;
+  font-size: 0.9rem; background: #fafafa; color: #222;
+  transition: border-color 0.15s; font-family: inherit; }
+input[type=text]:focus, textarea:focus { outline: none; border-color: #1a1a2e; background: white; }
+input[type=file] { display: none; }
+.file-upload-zone {
+  border: 1.5px dashed #ddd; border-radius: 10px; padding: 20px 16px;
+  display: flex; align-items: center; gap: 14px; cursor: pointer;
+  transition: border-color 0.15s, background 0.15s; background: #fafafa; }
+.file-upload-zone:hover { border-color: #aaa; background: #f5f5f5; }
+.file-upload-zone.dragover { border-color: #3a5bd9; background: #f0f3ff; }
+.file-upload-icon { width: 48px; height: 48px; border-radius: 8px; border: 1.5px dashed #ccc;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  color: #999; font-size: 1.4rem; font-weight: 300; }
+.file-upload-text { display: flex; flex-direction: column; gap: 2px; }
+.file-upload-text .title { font-size: 0.88rem; font-weight: 600; color: #222; }
+.file-upload-text .desc { font-size: 0.78rem; color: #999; }
+.file-upload-result { display: none; border: 1.5px solid #e8e8e8; border-radius: 10px;
+  padding: 12px 16px; background: #fafafa; align-items: center; gap: 10px; }
+.file-upload-result.show { display: flex; }
+.file-upload-result .file-name { flex: 1; font-size: 0.85rem; color: #333;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file-upload-result .file-remove { width: 28px; height: 28px; border: none; background: transparent;
+  cursor: pointer; color: #999; font-size: 1.1rem; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; }
+.file-upload-result .file-remove:hover { background: #f0f0f0; color: #e53935; }
+textarea { resize: vertical; min-height: 90px; line-height: 1.65; }
+textarea.body-text { min-height: 160px; }
+.char-count { font-size: 0.75rem; margin-top: 3px; text-align: right; color: #bbb; }
+.char-count.warn { color: #ff7043; }
+.char-count.over { color: #e53935; font-weight: 600; }
+.bottom-bar { background: white; border-top: 1px solid #e8e8e8;
+              padding: 14px 24px; display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
+.btn-generate { width: 100%; padding: 12px; background: #1a1a2e; color: white; border: none;
+                border-radius: 7px; font-size: 0.95rem; cursor: pointer; font-weight: 600;
+                transition: background 0.15s; }
+.btn-generate:hover { background: #2d2d5e; }
+.btn-generate:disabled { background: #aaa; cursor: not-allowed; }
+.panel-thumb { width: 160px; flex-shrink: 0; background: #2a2a2a; border-right: 1px solid #1a1a1a;
+  display: flex; flex-direction: column; align-items: center; padding: 12px 10px; gap: 10px; overflow-y: auto; }
+.thumb-card { display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; }
+.thumb-card canvas { width: 120px; box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+  border: 2px solid transparent; transition: border-color 0.15s; display: block; }
+.thumb-card canvas:hover { border-color: #5577ff; }
+.thumb-card canvas.active-thumb { border-color: #3a5bd9; }
+.thumb-page-num { font-size: 0.68rem; color: #888; }
+.thumb-placeholder { text-align:center; padding: 16px 8px; color: #555; }
+.thumb-placeholder p { font-size: 0.7rem; margin-top: 6px; line-height: 1.5; }
+.panel-right { flex: 1; background: #111; overflow: hidden; display: flex; flex-direction: column; }
+.preview-toolbar { background: #2a2a2a; color: white;
+                   padding: 8px 16px; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.preview-tabs { display: flex; gap: 4px; }
+.preview-tab { padding: 4px 12px; border-radius: 5px; cursor: pointer;
+               font-size: 0.78rem; color: rgba(255,255,255,0.6);
+               border: none; background: transparent; transition: all 0.15s; }
+.preview-tab.active { background: rgba(255,255,255,0.15); color: white; font-weight: 600; }
+.preview-tab:hover { background: rgba(255,255,255,0.1); color: white; }
+.preview-spacer { flex: 1; }
+.zoom-controls { display: flex; align-items: center; gap: 4px; }
+.zoom-btn { background: rgba(255,255,255,0.12); border: none; color: white;
+            width: 28px; height: 28px; border-radius: 5px; cursor: pointer; font-size: 1rem;
+            display: flex; align-items: center; justify-content: center; }
+.zoom-btn:hover { background: rgba(255,255,255,0.25); }
+.btn-dl { background: #3a5bd9; border: none; color: white; padding: 5px 14px;
+          border-radius: 5px; cursor: pointer; font-size: 0.78rem; font-weight: 600; }
+.btn-dl:hover { background: #2d4ec4; }
+.preview-main { flex: 1; overflow: auto; display: flex; align-items: center;
+                justify-content: center; padding: 32px; position: relative; }
+.preview-main canvas { box-shadow: 0 6px 32px rgba(0,0,0,0.7); max-width: 100%; }
+.spinner { width: 32px; height: 32px; border: 3px solid #ddd; border-top-color: #1a1a2e;
+           border-radius: 50%; animation: spin 0.7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.status-bar { padding: 10px 24px; font-size: 0.82rem; display: none;
+              border-top: 1px solid transparent; flex-shrink: 0; }
+.status-bar.loading { display: block; background: #e8f4fd; color: #1565c0; border-color: #bbdefb; }
+.status-bar.error   { display: block; background: #fdecea; color: #c62828; border-color: #ffcdd2; }
+.status-bar.success { display: block; background: #e8f5e9; color: #2e7d32; border-color: #c8e6c9; }
+</style>
+</head>
+<body>
+<header>
+  <h1>소년논술 미니북 PDF 생성기</h1>
+  <span>자라다소년논술</span>
+</header>
+<div class="workspace">
+  <div class="panel-left">
+    <div class="panel-left-inner">
+      <div class="section">
+        <div class="section-heading"><span class="num">1</span>앞표지</div>
+        <div class="form-group">
+          <label>앞표지 이미지 <span class="lim">(158×220mm)</span></label>
+          <input type="file" id="front_cover" accept="image/*">
+          <div class="file-upload-zone" id="zone-front_cover" onclick="document.getElementById('front_cover').click()">
+            <div class="file-upload-icon">+</div>
+            <div class="file-upload-text"><span class="title">내 파일로 업로드</span><span class="desc">이미지 파일 업로드(158×220mm)</span></div>
+          </div>
+          <div class="file-upload-result" id="result-front_cover"><span>📁</span><span class="file-name" id="fname-front_cover"></span><button class="file-remove" onclick="clearFile('front_cover')">✕</button></div>
+        </div>
+        <button class="btn-confirm" onclick="confirmSection('front_cover')">확인</button>
+      </div>
+      <div class="section">
+        <div class="section-heading"><span class="num">2</span>앞속지</div>
+        <div class="form-group">
+          <label>작가 이름 <span class="req">필수</span></label>
+          <input type="text" id="author_name" placeholder="예: 최민준">
+        </div>
+        <div class="form-group">
+          <label>작가 사진 <span class="lim">(35×40mm)</span></label>
+          <input type="file" id="photo" accept="image/*">
+          <div class="file-upload-zone" id="zone-photo" onclick="document.getElementById('photo').click()">
+            <div class="file-upload-icon">+</div>
+            <div class="file-upload-text"><span class="title">내 파일로 업로드</span><span class="desc">이미지 파일 업로드(35×40mm)</span></div>
+          </div>
+          <div class="file-upload-result" id="result-photo"><span>📁</span><span class="file-name" id="fname-photo"></span><button class="file-remove" onclick="clearFile('photo')">✕</button></div>
+        </div>
+        <div class="form-group">
+          <label>작가의 말 <span class="opt">선택</span><span class="lim">공백 포함 300자 이내</span></label>
+          <textarea id="author_note" maxlength="300" placeholder="작가의 말을 입력하세요. (공백 포함 최대 300자)"></textarea>
+          <div class="char-count" id="cnt-note">0 / 300자</div>
+        </div>
+        <button class="btn-confirm" onclick="confirmSection('front')">확인</button>
+      </div>
+      <div class="section">
+        <div class="section-heading"><span class="num">3</span>내지</div>
+        <div class="form-group">
+          <label>책 제목 <span class="req">필수</span><span class="lim">30자 이내 · Enter로 줄바꿈</span></label>
+          <textarea id="title" rows="2" style="min-height:50px;resize:none" placeholder="예: 끔찍한 꿈의&#10;주인공이 되었다"></textarea>
+          <div class="char-count" id="cnt-title">0 / 30자</div>
+        </div>
+        <div class="form-group">
+          <label>부제목 <span class="req">필수</span><span class="lim">30자 이내 · Enter로 줄바꿈</span></label>
+          <textarea id="subtitle" rows="2" style="min-height:50px;resize:none" placeholder="예: 3일 생존기&#10;거인편"></textarea>
+          <div class="char-count" id="cnt-subtitle">0 / 30자</div>
+        </div>
+        <div class="form-group">
+          <label>본문 내용 <span class="req">필수</span></label>
+          <textarea id="content" class="body-text" placeholder="본문 내용을 입력하세요. 단락은 줄바꿈(Enter)으로 구분합니다."></textarea>
+        </div>
+        <button class="btn-confirm" onclick="confirmSection('inner')">확인</button>
+      </div>
+      <div class="section">
+        <div class="section-heading"><span class="num">4</span>뒤속지</div>
+        <div class="form-group">
+          <label>책 제목 <span class="req">필수</span><span class="lim">30자 이내 · Enter로 줄바꿈</span></label>
+          <textarea id="book_title" rows="2" style="min-height:50px;resize:none" placeholder="예: 끔찍한 꿈의&#10;주인공이 되었다"></textarea>
+          <div class="char-count" id="cnt-book-title">0 / 30자</div>
+        </div>
+        <div class="form-group">
+          <label>지은이 <span class="req">필수</span></label>
+          <input type="text" id="back_author" placeholder="예: 최민준">
+        </div>
+        <div class="form-group">
+          <label>지도교사 <span class="req">필수</span></label>
+          <input type="text" id="teacher_name" placeholder="예: 박진혁">
+        </div>
+        <button class="btn-confirm" onclick="confirmSection('back')">확인</button>
+      </div>
+      <div class="section">
+        <div class="section-heading"><span class="num">5</span>뒤표지</div>
+        <div class="form-group">
+          <label>뒤표지 이미지 <span class="lim">(158×220mm)</span></label>
+          <input type="file" id="back_cover" accept="image/*">
+          <div class="file-upload-zone" id="zone-back_cover" onclick="document.getElementById('back_cover').click()">
+            <div class="file-upload-icon">+</div>
+            <div class="file-upload-text"><span class="title">내 파일로 업로드</span><span class="desc">이미지 파일 업로드(158×220mm)</span></div>
+          </div>
+          <div class="file-upload-result" id="result-back_cover"><span>📁</span><span class="file-name" id="fname-back_cover"></span><button class="file-remove" onclick="clearFile('back_cover')">✕</button></div>
+        </div>
+        <button class="btn-confirm" onclick="confirmSection('back_cover')">확인</button>
+      </div>
+    </div>
+    <div class="bottom-bar">
+      <button class="btn-generate" id="btn-gen" onclick="generateAll()">전체 PDF 다운로드</button>
+    </div>
+  </div>
+  <div class="panel-thumb" id="panel-thumb">
+    <div class="thumb-placeholder" id="thumb-placeholder">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="1.5">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+      </svg>
+      <p>확인 버튼을<br>눌러주세요</p>
+    </div>
+    <div id="thumb-list"></div>
+  </div>
+  <div class="panel-right">
+    <div class="preview-toolbar">
+      <div class="preview-tabs">
+        <button class="preview-tab active" onclick="switchPreview('front_cover')" id="ptab-front_cover">앞표지</button>
+        <button class="preview-tab" onclick="switchPreview('front')" id="ptab-front">앞속지</button>
+        <button class="preview-tab" onclick="switchPreview('inner')" id="ptab-inner">내지</button>
+        <button class="preview-tab" onclick="switchPreview('back')" id="ptab-back">뒤속지</button>
+        <button class="preview-tab" onclick="switchPreview('back_cover')" id="ptab-back_cover">뒤표지</button>
+      </div>
+      <div class="preview-spacer"></div>
+      <div class="zoom-controls">
+        <button class="zoom-btn" onclick="zoomOut()">−</button>
+        <button class="zoom-btn" onclick="zoomIn()">+</button>
+      </div>
+      <button class="btn-dl" id="btn-dl-preview" onclick="downloadCurrent()" style="display:none">다운로드</button>
+    </div>
+    <div class="preview-main" id="preview-main">
+      <div id="preview-placeholder" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:#555">
+        <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="1.2">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+        </svg>
+        <p style="font-size:0.9rem">내용을 입력하고 확인을 클릭하세요</p>
+      </div>
+      <div id="preview-loading" style="position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:10px">
+        <div class="spinner"></div>
+        <span style="font-size:0.82rem;color:#777">PDF 생성 중...</span>
+      </div>
+      <canvas id="preview-canvas" style="display:none"></canvas>
+    </div>
+    <div class="status-bar" id="status-bar"></div>
+  </div>
+</div>
+<script src="app.js"></script>
+</body>
+</html>
