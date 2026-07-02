@@ -57,6 +57,34 @@ setupCounter('book_title', 'cnt-book-title', 30);
 function setStatus(t, m) { const e = document.getElementById('status-bar'); e.className = 'status-bar ' + t; e.textContent = m; }
 function clearStatus() { document.getElementById('status-bar').className = 'status-bar'; }
 
+// ── 이미지 압축 (4MB 이하로) ──
+function compressImage(file, maxSizeMB = 3) {
+  return new Promise((resolve) => {
+    if (file.size <= maxSizeMB * 1024 * 1024) { resolve(file); return; }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let w = img.width, h = img.height;
+        // 최대 3000px로 리사이즈
+        const maxDim = 3000;
+        if (w > maxDim || h > maxDim) {
+          if (w > h) { h = Math.round(h * maxDim / w); w = maxDim; }
+          else { w = Math.round(w * maxDim / h); h = maxDim; }
+        }
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        canvas.toBlob((blob) => {
+          resolve(new File([blob], file.name, { type: 'image/jpeg' }));
+        }, 'image/jpeg', 0.85);
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 // ── 줌 ──
 function zoomIn() { zoomLevel = Math.min(+(zoomLevel + 0.2).toFixed(1), 3); renderCurrentPage(); }
 function zoomOut() { zoomLevel = Math.max(+(zoomLevel - 0.2).toFixed(1), 0.3); renderCurrentPage(); }
@@ -72,7 +100,7 @@ function switchPreview(tab) {
 }
 
 // ── FormData 빌더 ──
-function buildFormData(tab) {
+async function buildFormData(tab) {
   const fd = new FormData();
   fd.append('pdf_type', tab);
   if (tab === 'back') {
@@ -81,9 +109,12 @@ function buildFormData(tab) {
     fd.append('author_name', document.getElementById('author_name').value || '작가명');
   }
   fd.append('author_note', document.getElementById('author_note').value);
-  const pf = document.getElementById('photo').files[0]; if (pf) fd.append('photo', pf);
-  const fc = document.getElementById('front_cover').files[0]; if (fc) fd.append('front_cover', fc);
-  const bc = document.getElementById('back_cover').files[0]; if (bc) fd.append('back_cover', bc);
+  const pf = document.getElementById('photo').files[0];
+  if (pf) { const compressed = await compressImage(pf); fd.append('photo', compressed); }
+  const fc = document.getElementById('front_cover').files[0];
+  if (fc) { const compressed = await compressImage(fc); fd.append('front_cover', compressed); }
+  const bc = document.getElementById('back_cover').files[0];
+  if (bc) { const compressed = await compressImage(bc); fd.append('back_cover', compressed); }
   fd.append('title', document.getElementById('title').value || '제목');
   fd.append('subtitle', document.getElementById('subtitle').value || '부제목');
   fd.append('content', document.getElementById('content').value || '본문');
@@ -104,7 +135,7 @@ async function confirmSection(tab) {
   clearStatus();
 
   try {
-    const fd = buildFormData(tab);
+    const fd = await buildFormData(tab);
     const res = await fetch('/api/generate', { method: 'POST', body: fd });
     if (!res.ok) {
       const err = await res.json().catch(() => ({ error: '오류' }));
