@@ -180,19 +180,22 @@ def _generate_body_pdf(subtitle, content, title_text=""):
             self.set_text_color(0, 0, 0)
             pnum_y = BD_MM + 195  # 하단에서 약 15mm 위
 
-            if page_num % 2 == 0:  # 짝수: 좌하단
+            if page_num % 2 == 0:  # 짝수(왼쪽 페이지): 좌측정렬, 좌측여백 20mm
                 self.set_xy(BD_MM + 20, pnum_y)
                 self.cell(0, 0, str(page_num))
-            else:  # 홀수: 우하단에 번호 + 책제목
-                # 책 제목 (우측 정렬 — 본문 텍스트 영역 우측 끝에 맞춤)
+            else:  # 홀수(오른쪽 페이지): 우측정렬, 우측여백 20mm
                 title_clean = " ".join(self._title_str.split()).strip()
+                num_str = str(page_num)
+                num_w = self.get_string_width(num_str)
+                # 우측 여백에서 20mm = 도련 + A5폭 - 20
+                right_edge = BD_MM + pw_a5 - 20
+                # 숫자를 우측 끝에 배치 (숫자 우측 끝 = right_edge)
+                num_x = right_edge - num_w
+                self.set_xy(num_x, pnum_y)
+                self.cell(0, 0, num_str)
+                # 제목을 숫자 왼쪽에 배치
                 title_w = self.get_string_width(title_clean)
-                num_w = self.get_string_width(str(page_num))
-                # 본문 우측 끝: BOX_X(30) + 98 = 128mm
-                right_x = 128
-                self.set_xy(right_x - num_w, pnum_y)
-                self.cell(0, 0, str(page_num))
-                self.set_xy(right_x - num_w - 3 - title_w, pnum_y)
+                self.set_xy(num_x - 3 - title_w, pnum_y)
                 self.cell(0, 0, title_clean)
 
     pdf = MiniBookPDF(title_text)

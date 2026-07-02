@@ -83,10 +83,10 @@ textarea.body-text { min-height: 160px; }
 .panel-thumb { width: 160px; flex-shrink: 0; background: #2a2a2a; border-right: 1px solid #1a1a1a;
   display: flex; flex-direction: column; align-items: center; padding: 12px 10px; gap: 10px; overflow-y: auto; }
 .thumb-card { display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; }
-.thumb-card canvas { width: 120px; box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+.thumb-card img { width: 120px; box-shadow: 0 2px 8px rgba(0,0,0,0.5);
   border: 2px solid transparent; transition: border-color 0.15s; display: block; }
-.thumb-card canvas:hover { border-color: #5577ff; }
-.thumb-card canvas.active-thumb { border-color: #3a5bd9; }
+.thumb-card img:hover { border-color: #5577ff; }
+.thumb-card img.active-thumb { border-color: #3a5bd9; }
 .thumb-page-num { font-size: 0.68rem; color: #888; }
 .thumb-placeholder { text-align:center; padding: 16px 8px; color: #555; }
 .thumb-placeholder p { font-size: 0.7rem; margin-top: 6px; line-height: 1.5; }
@@ -260,6 +260,6 @@ textarea.body-text { min-height: 160px; }
     <div class="status-bar" id="status-bar"></div>
   </div>
 </div>
-<script src="app.js"></script>
+<script src="app.js?v=2"></script>
 </body>
 </html>
