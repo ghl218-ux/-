@@ -200,14 +200,25 @@ async function renderCurrentPage() {
 
 // ── 개별 다운로드 ──
 function downloadCurrent() {
-  const pdfBuffer = cachedPdfs[currentTab];
-  if (!pdfBuffer) { setStatus('error', '먼저 확인 버튼을 눌러주세요.'); return; }
+  if (!cachedPdfs[currentTab]) { setStatus('error', '먼저 확인 버튼을 눌러주세요.'); return; }
   const names = { front_cover: '앞표지.pdf', front: '앞속지.pdf', inner: '내지.pdf', back: '뒤속지.pdf', back_cover: '뒤표지.pdf' };
-  const blob = new Blob([pdfBuffer], { type: 'application/pdf' });
-  const u = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = u; a.download = names[currentTab] || 'download.pdf'; a.click();
-  setTimeout(() => URL.revokeObjectURL(u), 1000);
+  // 서버에 새로 요청해서 다운로드
+  setStatus('loading', '다운로드 준비 중...');
+  buildFormData(currentTab).then(fd => {
+    fetch('/api/generate', { method: 'POST', body: fd })
+      .then(res => {
+        if (!res.ok) throw new Error('서버 오류');
+        return res.blob();
+      })
+      .then(blob => {
+        const u = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = u; a.download = names[currentTab] || 'download.pdf'; a.click();
+        setTimeout(() => URL.revokeObjectURL(u), 1000);
+        clearStatus();
+      })
+      .catch(e => setStatus('error', '다운로드 오류: ' + e.message));
+  });
 }
 
 // ── 전체 PDF 다운로드 ──
