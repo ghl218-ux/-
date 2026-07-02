@@ -141,13 +141,60 @@ def _draw_title_page(c, title):
     c.restoreState()
 
 
-def _generate_body_pdf(subtitle, content):
+def _generate_body_pdf(subtitle, content, title_text=""):
     from fpdf import FPDF
 
     FONT_PATH = os.path.join(FONT_DIR, "KoPubWorld-Light.ttf")
     FONT_BOLD_PATH = os.path.join(FONT_DIR, "Paperlogy-9Black.ttf")
+    PNUM_FONT_PATH = os.path.join(FONT_DIR, "Pretendard-Light.ttf")
 
-    pdf = FPDF(unit="mm", format=(158, 220))
+    # 도련 포함 페이지: 158x220mm
+    BD_MM = 5  # 도련
+    MARK_MM = 10  # 재단선 길이
+
+    class MiniBookPDF(FPDF):
+        def __init__(self, title_str):
+            super().__init__(unit="mm", format=(158, 220))
+            self._title_str = title_str
+            self._page_start = 2  # 본문 시작 페이지 번호
+
+        def footer(self):
+            # 재단선 그리기
+            pw_a5 = 148  # A5 가로
+            ph_a5 = 210  # A5 세로
+            self.set_draw_color(0, 0, 0)
+            self.set_line_width(0.09)  # 약 0.25pt
+            corners = [
+                (BD_MM, BD_MM, -1, -1),
+                (BD_MM + pw_a5, BD_MM, 1, -1),
+                (BD_MM, BD_MM + ph_a5, -1, 1),
+                (BD_MM + pw_a5, BD_MM + ph_a5, 1, 1),
+            ]
+            for px, py, dx, dy in corners:
+                self.line(px, py, px + dx * MARK_MM, py)
+                self.line(px, py, px, py + dy * MARK_MM)
+
+            # 페이지 번호
+            page_num = self.page + 1  # 1p는 제목이므로 +1
+            self.set_font("Pretendard", size=7.5)
+            self.set_text_color(0, 0, 0)
+            pnum_y = BD_MM + 195  # 하단에서 약 15mm 위
+
+            if page_num % 2 == 0:  # 짝수: 좌하단
+                self.set_xy(BD_MM + 20, pnum_y)
+                self.cell(0, 0, str(page_num))
+            else:  # 홀수: 우하단에 번호 + 책제목
+                # 책 제목 (우측 정렬)
+                title_clean = " ".join(self._title_str.split()).strip()
+                title_w = self.get_string_width(title_clean)
+                num_w = self.get_string_width(str(page_num))
+                right_x = BD_MM + pw_a5 - 20
+                self.set_xy(right_x - num_w, pnum_y)
+                self.cell(0, 0, str(page_num))
+                self.set_xy(right_x - num_w - 3 - title_w, pnum_y)
+                self.cell(0, 0, title_clean)
+
+    pdf = MiniBookPDF(title_text)
     pdf.set_auto_page_break(auto=True, margin=35)
     pdf.set_top_margin(30)
     pdf.t_margin = 30
@@ -158,6 +205,7 @@ def _generate_body_pdf(subtitle, content):
 
     pdf.add_font("KoPub", "", FONT_PATH)
     pdf.add_font("PaperlogyBlack", "", FONT_BOLD_PATH)
+    pdf.add_font("Pretendard", "", PNUM_FONT_PATH)
 
     BODY_SIZE = 12
     LEADING = 8.1
@@ -195,7 +243,7 @@ def generate_inner(title, subtitle, content):
     title_pdf = buf1.read()
 
     # 2p~: 본문 (fpdf2)
-    body_pdf = _generate_body_pdf(subtitle, content)
+    body_pdf = _generate_body_pdf(subtitle, content, title)
 
     # 합치기 (pypdf — PyMuPDF 대체)
     writer = PdfWriter()
