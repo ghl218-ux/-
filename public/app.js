@@ -142,7 +142,7 @@ async function confirmSection(tab) {
       throw new Error(err.error || '서버 오류');
     }
     const pdfBuffer = await res.arrayBuffer();
-    cachedPdfs[tab] = pdfBuffer;
+    cachedPdfs[tab] = pdfBuffer.slice(0);  // 복사본 저장 (pdf.js가 원본을 소비하므로)
     await renderPdfPreview(pdfBuffer);
     document.getElementById('btn-dl-preview').style.display = 'block';
   } catch (e) {
