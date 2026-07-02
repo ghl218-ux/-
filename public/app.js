@@ -95,7 +95,14 @@ function switchPreview(tab) {
   document.querySelectorAll('.preview-tab').forEach(b => b.classList.remove('active'));
   document.getElementById('ptab-' + tab).classList.add('active');
   if (cachedPdfs[tab]) {
+    document.getElementById('preview-placeholder').style.display = 'none';
+    document.getElementById('preview-canvas').style.display = 'block';
     renderPdfPreview(cachedPdfs[tab]);
+    document.getElementById('btn-dl-preview').style.display = 'block';
+  } else {
+    document.getElementById('preview-canvas').style.display = 'none';
+    document.getElementById('preview-placeholder').style.display = 'flex';
+    document.getElementById('btn-dl-preview').style.display = 'none';
   }
 }
 
