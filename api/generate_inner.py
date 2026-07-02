@@ -184,11 +184,12 @@ def _generate_body_pdf(subtitle, content, title_text=""):
                 self.set_xy(BD_MM + 20, pnum_y)
                 self.cell(0, 0, str(page_num))
             else:  # 홀수: 우하단에 번호 + 책제목
-                # 책 제목 (우측 정렬)
+                # 책 제목 (우측 정렬 — 본문 텍스트 영역 우측 끝에 맞춤)
                 title_clean = " ".join(self._title_str.split()).strip()
                 title_w = self.get_string_width(title_clean)
                 num_w = self.get_string_width(str(page_num))
-                right_x = BD_MM + pw_a5 - 20
+                # 본문 우측 끝: BOX_X(30) + 98 = 128mm
+                right_x = 128
                 self.set_xy(right_x - num_w, pnum_y)
                 self.cell(0, 0, str(page_num))
                 self.set_xy(right_x - num_w - 3 - title_w, pnum_y)
