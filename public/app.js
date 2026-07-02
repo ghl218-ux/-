@@ -57,18 +57,18 @@ setupCounter('book_title', 'cnt-book-title', 30);
 function setStatus(t, m) { const e = document.getElementById('status-bar'); e.className = 'status-bar ' + t; e.textContent = m; }
 function clearStatus() { document.getElementById('status-bar').className = 'status-bar'; }
 
-// ── 이미지 압축 (4MB 이하로) ──
-function compressImage(file, maxSizeMB = 3) {
+// ── 이미지 압축 (항상 압축하여 전송 크기 줄임) ──
+function compressImage(file) {
   return new Promise((resolve) => {
-    if (file.size <= maxSizeMB * 1024 * 1024) { resolve(file); return; }
+    // 1MB 이하면 그냥 보냄
+    if (file.size <= 1 * 1024 * 1024) { resolve(file); return; }
     const reader = new FileReader();
     reader.onload = (e) => {
       const img = new Image();
       img.onload = () => {
         const canvas = document.createElement('canvas');
         let w = img.width, h = img.height;
-        // 최대 3000px로 리사이즈
-        const maxDim = 3000;
+        const maxDim = 1800;
         if (w > maxDim || h > maxDim) {
           if (w > h) { h = Math.round(h * maxDim / w); w = maxDim; }
           else { w = Math.round(w * maxDim / h); h = maxDim; }
@@ -76,8 +76,8 @@ function compressImage(file, maxSizeMB = 3) {
         canvas.width = w; canvas.height = h;
         canvas.getContext('2d').drawImage(img, 0, 0, w, h);
         canvas.toBlob((blob) => {
-          resolve(new File([blob], file.name, { type: 'image/jpeg' }));
-        }, 'image/jpeg', 0.85);
+          resolve(new File([blob], file.name.replace(/\.\w+$/, '.jpg'), { type: 'image/jpeg' }));
+        }, 'image/jpeg', 0.7);
       };
       img.src = e.target.result;
     };
